@@ -13,6 +13,7 @@ if ( isset($_POST['cancel']) ) {
 }
 require "pdo.php";
 require("curlTestImage.php");
+require('startswith.php');
 
 $stmted = $pdo->prepare("SELECT * FROM Profile WHERE profile_id = :xyz");
 $stmted->execute(array(":xyz" => $_REQUEST['profile_id']));
@@ -24,12 +25,16 @@ $he = $row['headline'];
 $su = $row['summary'];
 $img = $row['image'];
 
+if($_SESSION['user_id'] !== $row['user_id']){
+  die ("Bad User ID.");
+  return;
+}
 
-function startsWith ($string, $startString) 
-{ 
-    $len = strlen($startString); 
-    return (substr($string, 0, $len) === $startString); 
-} 
+// function startsWith ($string, $startString) 
+// { 
+//     $len = strlen($startString); 
+//     return (substr($string, 0, $len) === $startString); 
+// } 
 
 if ( isset($_POST['first_name']) && isset($_POST['last_name']) 
      && isset($_POST['email']) && isset($_POST['headline']) && isset($_POST['summary'])) {

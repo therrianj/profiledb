@@ -28,13 +28,17 @@ if ( ! isset($_REQUEST['profile_id']) ) {
   return;
 }
 
-$stmt = $pdo->prepare("SELECT first_name, last_name, profile_id FROM Profile where profile_id = :xyz");
+$stmt = $pdo->prepare("SELECT user_id, first_name, last_name, profile_id FROM Profile where profile_id = :xyz");
 $stmt->execute(array(":xyz" => $_REQUEST['profile_id']));
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 if ( $row === false ) {
     $_SESSION['error'] = 'Bad value for user_id';
     header( 'Location: index.php' ) ;
     return;
+}
+if($_SESSION['user_id'] !== $row['user_id']){
+  die ("Bad User ID.");
+  return;
 }
 
 ?>

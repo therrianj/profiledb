@@ -2,7 +2,7 @@
 session_start();
 require_once 'pdo.php';
 
-$stmt = $pdo->query("SELECT first_name, last_name, headline, profile_id, image FROM Profile");
+$stmt = $pdo->query("SELECT user_id, first_name, last_name, headline, profile_id, image FROM Profile");
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -15,6 +15,11 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="container">
 <h1>Jonathan Therrian's Resume Registry</h1>
 <?php
+if (isset($_POST['search'])){
+    $_SESSION['search'] = $_POST['search'];
+    header('location: search.php');
+    return;
+}
 if ( isset($_SESSION['success']) ) {
     // Look closely at the use of single and double quotes
     echo('<p style="color: green;">'.htmlentities($_SESSION['success'])."</p>\n");
@@ -66,8 +71,11 @@ if ( ! isset($_SESSION['name']) && ! isset($_SESSION['email'])) { ?>
     echo("</td><td>");
     if ($row['image'] !== null){echo ('<img src="'.$row['image'].'" alt="image not found"');}
     echo("</td><td>");
-    echo('<a href="edit.php?profile_id='.$row['profile_id'].'"> Edit /</a>');
-    echo('<a href="delete.php?profile_id='.$row['profile_id'].'">Delete</a>');
+    if ($_SESSION['user_id'] === $row['user_id']){
+        echo('<a href="edit.php?profile_id='.$row['profile_id'].'"> Edit /</a>');
+        echo('<a href="delete.php?profile_id='.$row['profile_id'].'">Delete</a>');
+    }
+    
     echo(" </td></tr>\n"); }
 
  ?> 
@@ -75,8 +83,15 @@ if ( ! isset($_SESSION['name']) && ! isset($_SESSION['email'])) { ?>
 </p>
  <a href="add.php">Add New Entry</a> 
 </p>
-<?php } ?>
 
+<?php } ?>
+<form method="post">
+    <p>Search:
+    <input type="text" name="search">
+    <input type="submit" name="submit" value="Submit">
+</p>
+
+</form>
 </div>
 </html>
 
