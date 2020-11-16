@@ -19,7 +19,7 @@ require_once("pdo.php");
 if (isset($_SESSION['search'])){
 	echo($_SESSION['search']);
 	$search = "%".$_SESSION['search']."%";
-	$stmt  = $pdo->prepare("SELECT * FROM Profile WHERE first_name LIKE ?");
+	$stmt  = $pdo->prepare("SELECT * FROM Profile WHERE user_id LIKE ?");
 	$stmt->execute([$search]);
 	$data = $stmt->fetchAll();
 	
@@ -50,6 +50,10 @@ if (isset($_SESSION['search'])){
 foreach ($data as $k) {
 
     echo "</br>";
+    echo "User ID: ".htmlentities($k['user_id']);
+    echo "</br></br>";
+    echo "Profile ID: ".htmlentities($k['profile_id']);
+    echo "</br></br>";
     echo "First Name: ".htmlentities($k['first_name']);
     echo "</br></br>";
     echo "Last Name: ".htmlentities($k['last_name']);
