@@ -19,7 +19,7 @@ require_once("pdo.php");
 if (isset($_SESSION['search'])){
 	echo($_SESSION['search']);
 	$search = "%".$_SESSION['search']."%";
-	$stmt  = $pdo->prepare("SELECT * FROM Profile WHERE user_id LIKE ?");
+	$stmt  = $pdo->prepare("SELECT * FROM Profile WHERE first_name LIKE ?");
 	$stmt->execute([$search]);
 	$data = $stmt->fetchAll();
 	

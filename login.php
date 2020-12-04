@@ -6,6 +6,7 @@ if ( isset($_POST['cancel'] ) ) {
     return;
 }
 require_once 'pdo.php';
+require_once 'util.php';
 
 
 $salt = 'XyZzy12*_';
@@ -74,10 +75,7 @@ if ( isset($_POST['email']) && isset($_POST['pass']) ) {
 <?php
 // Note triple not equals and think how badly double
 // not equals would work here...
-if ( isset($_SESSION['error']) ) {
-  echo('<p style="color: red;">'.htmlentities($_SESSION['error'])."</p>\n");
-  unset($_SESSION['error']);
-}
+flashMessages();
 ?>
 <form method="post">
     <label for="nam">Email</label>

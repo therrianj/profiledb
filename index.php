@@ -1,6 +1,7 @@
 <?php
 session_start();
-require_once 'pdo.php';
+require 'pdo.php';
+require_once 'util.php';
 
 $stmt = $pdo->query("SELECT user_id, first_name, last_name, headline, profile_id, image FROM Profile");
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -15,21 +16,9 @@ $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="container">
 <h1>Jonathan Therrian's Resume Registry</h1>
 <?php
-if (isset($_POST['search'])){
-    $_SESSION['search'] = $_POST['search'];
-    header('location: search.php');
-    return;
-}
-if ( isset($_SESSION['success']) ) {
-    // Look closely at the use of single and double quotes
-    echo('<p style="color: green;">'.htmlentities($_SESSION['success'])."</p>\n");
-    unset($_SESSION['success']);
-}
-if ( isset($_SESSION['error']) ) {
-    // Look closely at the use of single and double quotes
-    echo('<p style="color: red;">'.htmlentities($_SESSION['error'])."</p>\n");
-    unset($_SESSION['error']);
-}
+flashMessages();
+search();
+
 if ( ! isset($_SESSION['name']) && ! isset($_SESSION['email'])) { ?>
 <p>
 <a href="login.php">Please log in</a>
@@ -58,7 +47,8 @@ if ( ! isset($_SESSION['name']) && ! isset($_SESSION['email'])) { ?>
 
 <table>
 <?php
-    
+    // $count = $rows->rowCount();
+    // echo $count;
     echo('<table border="2">'."\n");
     echo('<th>Name</th><th>Headline</th><th>Action</th>');
     foreach ( $rows as $row ) {
@@ -69,7 +59,7 @@ if ( ! isset($_SESSION['name']) && ! isset($_SESSION['email'])) { ?>
     echo("</td><td>");
     echo htmlentities($row['headline']);
     echo("</td><td>");
-    if ($row['image'] !== null){echo ('<img src="'.$row['image'].'" alt="image not found"');}
+    if (strlen($row['image']) >=1 ){echo ('<img src="'.$row['image'].'" alt="image not found"');}
     echo("</td><td>");
     if ($_SESSION['user_id'] === $row['user_id']){
         echo('<a href="edit.php?profile_id='.$row['profile_id'].'"> Edit /</a>');

@@ -12,41 +12,35 @@ if ( isset($_POST['cancel']) ) {
     return;
 }
 require_once "pdo.php";
-require("curlTestImage.php");
-require('startswith.php');
-$failure = false;
-$success = false;
-// function startsWith ($string, $startString) 
-// { 
-//     $len = strlen($startString); 
-//     return (substr($string, 0, $len) === $startString); 
-// } 
+require_once "bootstrap.php";
+require_once "curlTestImage.php";
+require_once "util.php";
+
+
+
+
+
 if ( isset($_POST['first_name']) && isset($_POST['last_name']) 
      && isset($_POST['email']) && isset($_POST['headline']) && isset($_POST['summary'])) {
 
-        if  (strlen($_POST['first_name'])<1 || strlen($_POST['last_name'])<1|| strlen($_POST['email'])<1 || strlen($_POST['headline'])<1 || strlen($_POST['summary'])<1) {
-           $_SESSION['error'] = 'All fields are required';
-           header('location: add.php');
-            return;
+        $msg = validateProfile();
 
-        } elseif (strpos ($_POST['email'], '@') == false) {
-            $_SESSION['error'] = "Email must have an at-sign (@)";
-        	header('location: add.php');
-        	return;
-
-        } elseif (strlen($_POST['image']) > 1 && (startsWith ($_POST['image'], 'https://')  || startsWith ($_POST['image'], 'http://'))  == false)  {
-            $_SESSION['error'] = "image url must start with http:// or https:// ";
+        if ( is_string($msg)){
+          $_SESSION['error'] = $msg;
           header('location: add.php');
           return;
 
-        } elseif (strlen($_POST['image']) > 1 && !url_test($_POST['image'])) {
-        
-               $_SESSION['error'] = "Image url is down!";
-               header('location: add.php');
-               return;
-             
 
-        }  else {
+        } 
+
+        $msg = validatePos();
+
+        if ( is_string($msg)){
+          $_SESSION['error'] = $msg;
+          header('location: add.php');
+          return;
+
+        }
 
             $stmt = $pdo->prepare('INSERT INTO Profile
               (user_id, first_name, last_name, email, headline, summary, image)
@@ -61,16 +55,38 @@ if ( isset($_POST['first_name']) && isset($_POST['last_name'])
               ':su' => $_POST['summary'],
               ':img' => $_POST['image'])
             );
-   //          $stmt = $pdo->query("SELECT make, year, mileage FROM autos");
-			// $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $profile_id = $pdo->lastInsertId();
+
+            $rank = 1;
+            for($i=1; $i<=9; $i++) {
+              if ( ! isset($_POST['year'.$i]) ) continue;
+              if ( ! isset($_POST['desc'.$i]) ) continue;
+
+              $year = $_POST['year'.$i];
+              $desc = $_POST['desc'.$i];
+
+              $stmt = $pdo->prepare('INSERT INTO Position (profile_id, ranks, year, description) VALUES ( :pid, :ranks, :year, :desc)');
+
+              $stmt->execute(array(
+                ':pid' => $profile_id,
+                ':ranks' => $rank,
+                ':year' => $year,
+                ':desc' => $desc)
+              );
+
+              $rank++;
+
+            }
+
+
+
             $_SESSION['success'] = "Profile added";
             header('location: index.php');
         	return;
 
         }
-    //          $_SESSION['stmt'] = $pdo->query("SELECT make, year, mileage FROM autos");
-			// $_SESSION['rows'] = $stmt->fetchAll(PDO::FETCH_ASSOC);     
-}
+
 
 ?>
 
@@ -85,11 +101,8 @@ if ( isset($_POST['first_name']) && isset($_POST['last_name'])
 <?php
 // Note triple not equals and think how badly double
 // not equals would work here...
-if ( isset($_SESSION['error']) ) {
-    // Look closely at the use of single and double quotes
-    echo('<p style="color: red;">'.htmlentities($_SESSION['error'])."</p>\n");
-    unset($_SESSION['error']);
-}
+flashMessages();
+
 ?>
 <form method="post">
     <p>First Name:
@@ -113,6 +126,34 @@ if ( isset($_SESSION['error']) ) {
         </br>
     <input type="text" name="image" size='60'>
     </p>
+    <p>Position: <input type="submit" id="addPos" value="+"></p>
+    <div id="position_fields"></div>
     <input type="submit" name="add" value="Add">
     <input type="submit" name="cancel" value="Cancel">
 </form>
+
+<script>
+countPos = 0;
+
+// http://stackoverflow.com/questions/17650776/add-remove-html-inside-div-using-javascript
+$(document).ready(function(){
+    window.console && console.log('Document ready called');
+    $('#addPos').click(function(event){
+        // http://api.jquery.com/event.preventdefault/
+        event.preventDefault();
+        if ( countPos >= 9 ) {
+            alert("Maximum of nine position entries exceeded");
+            return;
+        }
+        countPos++;
+        window.console && console.log("Adding position "+countPos);
+        $('#position_fields').append(
+            '<div id="position'+countPos+'"> \
+            <p>Year: <input type="text" name="year'+countPos+'" value="" /> \
+            <input type="button" value="-" \
+                onclick="$(\'#position'+countPos+'\').remove();return false;"></p> \
+            <textarea name="desc'+countPos+'" rows="8" cols="80"></textarea>\
+            </div>');
+    });
+});
+</script>

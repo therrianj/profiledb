@@ -1,13 +1,6 @@
 <?php
 session_start();
 
-// if ( ! isset($_SESSION['name'] ) && ! isset($_SESSION['email'] ) ) {
-//     // Redirect the browser to game.php
-//     $_SESSION['error'] = ("Not Logged In");
-//     header('location: index.php');
-//     return;
-// }
-
 require_once "pdo.php";
 $stmt = $pdo->prepare("SELECT * FROM Profile WHERE profile_id = :pid");
 $stmt->execute(array(       
@@ -33,6 +26,14 @@ $rows = $stmt->fetchall(PDO::FETCH_ASSOC);
 <h2>Automobiles</h2> -->
 <?php 
 // print_r($rows);
+$stpos = $pdo->prepare("SELECT * FROM Position WHERE profile_id = :pid");
+$stpos->execute(array(       
+                ':pid' => $_GET['profile_id'],));
+$posrows = $stpos->fetchall(PDO::FETCH_ASSOC);
+
+
+
+
 foreach ($rows as $k) {
 
     echo "</br>";
@@ -46,10 +47,24 @@ foreach ($rows as $k) {
     echo "</br></br>";
     echo "Summary: </br>".htmlentities($k['summary']);
     echo "</br></br>";
-    echo "Image: </br>";
-    if ($k['image'] !== null){echo ('<img src="'.$k['image'].'" alt="image not found"');}
+    echo "Positions: ";
     echo "</br></br>";
+    echo "<ul>";
+    foreach ($posrows as $j){
+        echo "<li>".htmlentities($j['year']).": ".htmlentities($j['description'])."</li>";
+                
+
+    }
+    echo "</ul>";
+    echo "</br></br>";
+    echo "Image: </br>";
+    if (strlen($k['image']) >=1){echo ('<img src="'.$k['image'].'" alt="image not found"');}
+    echo "</br></br>";
+
+
 }
+
+
 ?>
 
 <p>

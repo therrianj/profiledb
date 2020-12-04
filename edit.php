@@ -13,7 +13,8 @@ if ( isset($_POST['cancel']) ) {
 }
 require "pdo.php";
 require("curlTestImage.php");
-require('startswith.php');
+require "util.php";
+require_once "bootstrap.php";
 
 $stmted = $pdo->prepare("SELECT * FROM Profile WHERE profile_id = :xyz");
 $stmted->execute(array(":xyz" => $_REQUEST['profile_id']));
@@ -35,33 +36,30 @@ if($_SESSION['user_id'] !== $row['user_id']){
 //     $len = strlen($startString); 
 //     return (substr($string, 0, $len) === $startString); 
 // } 
+// location: edit.php?profile_id='.$_GET['profile_id']
 
 if ( isset($_POST['first_name']) && isset($_POST['last_name']) 
      && isset($_POST['email']) && isset($_POST['headline']) && isset($_POST['summary'])) {
 
-        if  (strlen($_POST['first_name'])<1 || strlen($_POST['last_name'])<1|| strlen($_POST['email'])<1 || strlen($_POST['headline'])<1 || strlen($_POST['summary'])<1) {
-           $_SESSION['error'] = 'All fields are required';
-           header('location: edit.php?profile_id='.$_GET['profile_id']);
-            return;
+        $msg = validateProfile();
+        if ( is_string($msg)){
 
-        } elseif (strpos ($_POST['email'], '@') == false) {
-            $_SESSION['error'] = "Email must have an at-sign (@)";
-        	header('location: edit.php?profile_id='.$_GET['profile_id']);
-        	return;
+        $_SESSION['error'] = $msg;
+        header('location: edit.php?profile_id='.$_GET['profile_id']);
+        return;
+             
 
-        } elseif (strlen($_POST['image']) > 1 && (startsWith ($_POST['image'], 'https://')  || startsWith ($_POST['image'], 'http://'))  == false)  {
-            $_SESSION['error'] = "image url must start with http:// or https:// ";
+        }
+
+        $msg = validatePos();
+
+        if ( is_string($msg)){
+          $_SESSION['error'] = $msg;
           header('location: add.php');
           return;
 
-        }  elseif (strlen($_POST['image']) > 1 && !url_test($_POST['image'])) {
-        
-               $_SESSION['error'] = "Image url is down!";
-               header('location: add.php');
-               return;
-             
+        }
 
-        } else {
 
             $stmt = $pdo->prepare('UPDATE Profile set user_id = :uid, first_name = :fn, last_name = :ln, email = :em, headline = :he, summary = :su, image = :img
               WHERE profile_id = :pid');
@@ -76,15 +74,38 @@ if ( isset($_POST['first_name']) && isset($_POST['last_name'])
               ':su' => $_POST['summary'],
               ':img' => $_POST['image'])
             );
-   //          $stmt = $pdo->query("SELECT make, year, mileage FROM autos");
-			// $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            
+            $stmt = $pdo->prepare('DELETE FROM Position WHERE profile_id=:pid');
+            $stmt->execute(array( ':pid' => $_REQUEST['profile_id']));
+
+            $rank = 1;
+            for($i=1; $i<=9; $i++) {
+              if ( ! isset($_POST['year'.$i]) ) continue;
+              if ( ! isset($_POST['desc'.$i]) ) continue;
+
+              $year = $_POST['year'.$i];
+              $desc = $_POST['desc'.$i];
+
+              $stmt = $pdo->prepare('INSERT INTO Position (profile_id, ranks, year, description) VALUES ( :pid, :ranks, :year, :desc)');
+
+              $stmt->execute(array(
+                ':pid' => $_REQUEST['profile_id'],
+                ':ranks' => $rank,
+                ':year' => $year,
+                ':desc' => $desc)
+              );
+
+              $rank++;
+
+            }
+
             $_SESSION['success'] = "Profile updated";
             header('location: index.php');
         	   return;
 
-        }
-    //          $_SESSION['stmt'] = $pdo->query("SELECT make, year, mileage FROM autos");
-			// $_SESSION['rows'] = $stmt->fetchAll(PDO::FETCH_ASSOC);     
+        
+ 
 }
 if ( isset($_POST['save']) ) {
     if ( ! isset($_POST['first_name']) || ! isset($_POST['last_name']) 
@@ -113,7 +134,7 @@ if ( isset($_POST['save']) ) {
 <html>
 <head>
 <title>aa955ab6 Jonathan Therrian Profile Edit</title>
-<?php require_once "bootstrap.php"; ?>
+
 </head>
 <body>
 <div class="container">
@@ -121,13 +142,11 @@ if ( isset($_POST['save']) ) {
 <?php
 // Note triple not equals and think how badly double
 // not equals would work here...
-if ( isset($_SESSION['error']) ) {
-    // Look closely at the use of single and double quotes
-    echo('<p style="color: red;">'.htmlentities($_SESSION['error'])."</p>\n");
-    unset($_SESSION['error']);
-}
-
-
+flashMessages();
+$stpos = $pdo->prepare("SELECT * FROM Position WHERE profile_id = :pid");
+$stpos->execute(array(       
+                ':pid' => $_GET['profile_id'],));
+$posrows = $stpos->fetchall(PDO::FETCH_ASSOC);
 ?>
 <form method="post">
     <p>First Name:
@@ -151,7 +170,46 @@ if ( isset($_SESSION['error']) ) {
         </br>
     <input type="text" name="image" size='60' value="<?= $img ?>">
     </p>
+    <p>Position: <input type="submit" id="addPos" value="+"></p>
+    <div id="position_fields"></div>
+    <?php foreach ($posrows as $j){
+
+        echo "<div id='position".htmlentities($j['ranks'])."'>";
+        echo "<p>Year: <input type='text' name='year".$j['ranks']."' value=".$j['year'].">";
+        // echo "<input type='button' value='-' onclick="."$('#position2').remove();return false;>";
+        echo "<input type='button' value='-' onclick="."$('#position".$j['ranks']."').remove();return false;>";
+        echo "</p>";
+        echo "<textarea name='desc".$j['ranks']."' rows='8' cols='80'>".$j['description']."</textarea>";
+        echo "</div>";
+
+    }?>
     <input type="hidden" name="profile_id" value="<?= $row['profile_id'] ?>">
     <input type="submit" name="save" value="Save">
     <input type="submit" name="cancel" value="Cancel">
 </form>
+
+<script>
+countPos = 0;
+
+// http://stackoverflow.com/questions/17650776/add-remove-html-inside-div-using-javascript
+$(document).ready(function(){
+    window.console && console.log('Document ready called');
+    $('#addPos').click(function(event){
+        // http://api.jquery.com/event.preventdefault/
+        event.preventDefault();
+        if ( countPos >= 9 ) {
+            alert("Maximum of nine position entries exceeded");
+            return;
+        }
+        countPos++;
+        window.console && console.log("Adding position "+countPos);
+        $('#position_fields').append(
+            '<div id="position'+countPos+'"> \
+            <p>Year: <input type="text" name="year'+countPos+'" value="" /> \
+            <input type="button" value="-" \
+                onclick="$(\'#position'+countPos+'\').remove();return false;"></p> \
+            <textarea name="desc'+countPos+'" rows="8" cols="80"></textarea>\
+            </div>');
+    });
+});
+</script>
